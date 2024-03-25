@@ -35,45 +35,102 @@ public class FinalStateMachine : MonoBehaviour
     // Update is called once per Physics frame by default is every 0.02 seconds or rather 50 calls per second.
     void FixedUpdate()
     {
-        bool coinSpotted = CoinVisible();
-        if (coinSpotted)
-        {
-            // A coin has been spotted! Go get it!
-            this.ProcessCoin();
-        } else
-        {
-            // No coin seen, keep searching
-            this.ProcessPatrol();
-        }
+        this.ProcessStateMachine()
     }
 
-    void ProcessPatrol()
+    void ProcessStateMachine()
     {
         switch (currentState)
         {
+            case State.PatrolIdle:
+                if (this.CoinVisible())
+                {
+                    // Coin spotted change state to CoinIdle
+                    currentState = State.CoinIdle;
+                } 
+                else
+                {
+                    // Coin not seen start patrol!
+                    currentState = State.PatrolForward;
+                }
+                break;
+            case State.PatrolForward:
+                if (this.CoinVisible())
+                {
+                    currentState = State.CoinIdle;
+                }
+                else if (this.ObstacleVisible())
+                {
+                    currentState = State.PatrolLeft90;
+                }
+                break;
+            case State.PatrolLeft90:
+                if (this.CoinVisible())
+                {
+                    currentState = State.CoinIdle;
+                }
+                else if (this.ObstacleVisible())
+                {
+                    currentState = State.PatrolLeft180;
+                }
+                break;
+            case State.PatrolLeft180:
+                if (this.CoinVisible())
+                {
+                    currentState = State.CoinIdle;
+                }
+                else if (this.ObstacleVisible())
+                {
+                    currentState = State.PatrolLeft90TurnAround;
+                }
+                break;
+            case State.PatrolLeft90TurnAround:
+                if (this.CoinVisible())
+                {
+                    currentState = State.CoinIdle;
+                }
+                else if (this.ObstacleVisible())
+                {
+                    currentState = State.PatrolLeft90TurnAround;
+                }
+                break;
+            case State.CoinIdle:
+            case State.CoinRight:
+            case State.CoinLeft:
+                this.ProcessCoinCollectState();
+                break;
+            case State.CoinForward:
+                if (this.CoinCollected())
+                {
 
+                } 
+                else if (this.EnoughCoinsCollected())
+                {
+
+                }
+            default:
+                Debug.Log("State is invalid.");
         }
     }
 
-    void ProcessCoin()
+    void ProcessCoinCollectState()
     {
-        CoinDirection coinDirection = this.CoinDirection();
-        switch (coinDirection)
+        CoinDirection direction = GetCoinDirection();
+        switch (direction)
         {
-            case CoinDirection.Ahead:
-                Debug.Log("Coin ahead! Charge!");
-                break;
             case CoinDirection.Left:
-                Debug.Log("Coin to the left");
+                currentState = State.CoinLeft;
                 break;
             case CoinDirection.Right:
-                Debug.Log("Coin to the right");
+                currentState = State.CoinRight;
+                break;
+            case CoinDirection.Ahead:
+                currentState = State.CoinForward;
                 break;
             default:
-                Debug.Log("Coin direction not valid");
+                Debug.Log("Coin Direction was not valid");
         }
     }
-
 
     bool CoinVisible()
     {
@@ -81,7 +138,7 @@ public class FinalStateMachine : MonoBehaviour
         // A coin is visible if it is visible without walls in the way for half the coin, use the position of the coin to determine if half is visible from the position of the capsule, both are assumed to be in the middle.
     }
 
-    CoinDirection CoinDirection()
+    CoinDirection GetCoinDirection()
     {
         // Return what direction the coin is in, if it is within where the collider of the capsule will be when it gets to that position return ahead, if it's to the left return left, and if it's to the right return right.
     }
