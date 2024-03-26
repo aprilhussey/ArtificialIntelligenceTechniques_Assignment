@@ -6,11 +6,27 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private MazeTile mazeTilePrefab;
     [SerializeField] private int mazeWidth;
     [SerializeField] private int mazeDepth;
+    // Please keep <= maxWidth * maxDepth, otherwise may cause a stack overflow.
+    [SerializeField] private int numCoins;
+    [SerializeField] private GameObject coinPrefab;
+    private List<Vector3> populatedCoinPositions;
 
     private MazeTile[,] mazeGrid;
 
     private void Start()
     {
+        int totalSizeOfMaze = mazeDepth * mazeWidth;
+        // Generate the number of coins needed to be added.
+        populatedCoinPositions = new List<Vector3>();
+
+        // Populate coins into maze
+        for (int i = 0; i < numCoins; i++)
+        {
+            Vector3 coinPos = this.GenerateCoinPos();
+            populatedCoinPositions.Add(coinPos);
+            Instantiate(coinPrefab, coinPos, Quaternion.identity);
+        }
+
         mazeGrid = new MazeTile[mazeWidth, mazeDepth];
 
         for (int x = 0; x < mazeWidth; x++)
@@ -22,6 +38,23 @@ public class MazeGenerator : MonoBehaviour
         }
 
         GenerateMaze(null, mazeGrid[0, 0]);
+    }
+
+    private Vector3 GenerateCoinPos()
+    {
+        // Recursive function for finding coin pos that is not populated yet
+        // Potential for stack overflow here but odds are incredibly small unless percentageCoins > 100 or maxWidth > 1000 or maxDepth > 1000
+        int x = Random.Range(0, mazeWidth);
+        int y = Random.Range(0, mazeDepth);
+        Vector3 coinPos = new Vector3(x, 0.5f, y);
+        if (populatedCoinPositions.IndexOf(coinPos) != -1)
+        {
+            return GenerateCoinPos();
+        }
+        else
+        {
+            return coinPos;
+        }
     }
 
     private void GenerateMaze(MazeTile previousCell, MazeTile currentCell)
