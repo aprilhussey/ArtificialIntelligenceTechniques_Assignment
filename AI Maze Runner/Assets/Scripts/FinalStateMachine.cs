@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class FinalStateMachine : MonoBehaviour
 {
@@ -30,16 +31,23 @@ public class FinalStateMachine : MonoBehaviour
     [SerializeField]
     private float rotationAmount = 0.01f;
 
+    private int coinsCollected = 0;
+
+    [SerializeField]
+    private Text fsmScoreText;
+    private string initialScoreText;
+
     // Start is called before the first frame update
     void Start()
     {
         rigidBody = GetComponent<Rigidbody>();
+        initialScoreText = fsmScoreText.text;
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        fsmScoreText.text = initialScoreText + " " + coinsCollected;
     }
 
     // Update is called once per Physics frame by default is every 0.02 seconds or rather 50 calls per second.
