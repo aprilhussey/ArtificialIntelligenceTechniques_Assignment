@@ -148,19 +148,25 @@ public class FinalStateMachine : MonoBehaviour
                 this.rigidBody.velocity = transform.forward * this.moveSpeed;
                 break;
             case State.PatrolLeft90:
+                this.transform.Rotate(0, 90, 0);
                 break;
             case State.PatrolLeft180:
+                this.transform.Rotate(0, 180, 0);
                 break;
             case State.PatrolLeft90TurnAround:
+                this.transform.Rotate(0, 90, 0);
                 break;
             case State.CoinIdle:
                 // Do nothing be idle!
                 break;
             case State.CoinRight:
+                this.transform.Rotate(0, -rotationAmount, 0);
                 break;
             case State.CoinLeft:
+                this.transform.Rotate(0, rotationAmount, 0);
                 break;
             case State.CoinForward:
+                this.rigidBody.velocity = transform.forward * this.moveSpeed;
                 break;
             default:
                 Debug.Log("ProcessStateMachineActions: State is invalid.");
