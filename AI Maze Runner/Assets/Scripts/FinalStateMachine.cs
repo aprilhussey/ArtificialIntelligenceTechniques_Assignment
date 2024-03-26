@@ -31,7 +31,11 @@ public class FinalStateMachine : MonoBehaviour
     [SerializeField]
     private float rotationAmount = 0.01f;
 
+    // Total number of coins collected by this NPC
     private int coinsCollected = 0;
+
+    [SerializeField]
+    private float visibilityDistance = 0.3f;
 
     [SerializeField]
     private Text fsmScoreText;
@@ -71,6 +75,7 @@ public class FinalStateMachine : MonoBehaviour
                 {
                     // Coin not seen start patrol!
                     this.currentState = State.PatrolForward;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 break;
             case State.PatrolForward:
@@ -81,8 +86,7 @@ public class FinalStateMachine : MonoBehaviour
                 else if (this.ObstacleVisible())
                 {
                     this.currentState = State.PatrolLeft90;
-                    // Stop the npc stationary
-                    this.rigidBody.velocity = transform.forward * 0;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 break;
             case State.PatrolLeft90:
@@ -93,6 +97,12 @@ public class FinalStateMachine : MonoBehaviour
                 else if (this.ObstacleVisible())
                 {
                     this.currentState = State.PatrolLeft180;
+                    Debug.Log("CurrentState: " + this.currentState);
+                }
+                else
+                {
+                    this.currentState = State.PatrolForward;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 break;
             case State.PatrolLeft180:
@@ -103,6 +113,12 @@ public class FinalStateMachine : MonoBehaviour
                 else if (this.ObstacleVisible())
                 {
                     this.currentState = State.PatrolLeft90TurnAround;
+                    Debug.Log("CurrentState: " + this.currentState);
+                }
+                else
+                {
+                    this.currentState = State.PatrolForward;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 break;
             case State.PatrolLeft90TurnAround:
@@ -110,9 +126,10 @@ public class FinalStateMachine : MonoBehaviour
                 {
                     this.currentState = State.CoinIdle;
                 }
-                else if (this.ObstacleVisible())
+                else
                 {
-                    this.currentState = State.PatrolLeft90TurnAround;
+                    this.currentState = State.PatrolForward;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 break;
             case State.CoinIdle:
@@ -138,6 +155,9 @@ public class FinalStateMachine : MonoBehaviour
 
     void ProcessStateMachineActions()
     {
+        // Set everything to nill to begin with
+        this.rigidBody.velocity = new Vector2(0, 0);
+
         switch (this.currentState)
         {
             case State.PatrolIdle:
@@ -148,13 +168,13 @@ public class FinalStateMachine : MonoBehaviour
                 this.rigidBody.velocity = transform.forward * this.moveSpeed;
                 break;
             case State.PatrolLeft90:
-                this.transform.Rotate(0, 90, 0);
+                this.transform.Rotate(0, -90, 0);
                 break;
             case State.PatrolLeft180:
-                this.transform.Rotate(0, 180, 0);
+                this.transform.Rotate(0, -180, 0);
                 break;
             case State.PatrolLeft90TurnAround:
-                this.transform.Rotate(0, 90, 0);
+                this.transform.Rotate(0, -90, 0);
                 break;
             case State.CoinIdle:
                 // Do nothing be idle!
@@ -210,7 +230,18 @@ public class FinalStateMachine : MonoBehaviour
     bool ObstacleVisible()
     {
         // If a none coin obstacle is directly infront of the NPC less than half the distance of a maze cell's length
-        return false;
+
+        // Debug draw the ray
+        Debug.DrawRay(transform.position, transform.forward);
+
+        // Use a raycast to find the next object for the ray
+        Ray ray = new Ray(transform.position, transform.forward);
+        RaycastHit hit;
+
+        bool hitSomething = Physics.Raycast(ray, out hit);
+        //Debug.Log("FSM Raycast Hit: " + hit.collider.tag + "  distance: " + hit.distance);
+
+        return hitSomething && hit.distance < visibilityDistance;
     }
 
     bool CoinCollected()
