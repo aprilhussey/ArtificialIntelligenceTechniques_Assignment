@@ -274,7 +274,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 1
   rotationAmount: 0.01
-  visibilityDistance: 0.5
+  obstacleVisibilityDistance: 0.5
+  coinVisibilityDistance: 2
+  fieldOfView: 30
+  coinMaxAngleDivergence: 10
+  coinsCollectedGoal: 10
   fsmScoreText: {fileID: 1693952000}
 --- !u!1 &330585543
 GameObject:
@@ -760,7 +764,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &606480552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -878,7 +882,7 @@ MonoBehaviour:
     type: 3}
   mazeWidth: 20
   mazeDepth: 20
-  numCoins: 20
+  numCoins: 50
   coinPrefab: {fileID: 7995961837669761711, guid: 55e42e18978314d4da2201b5e4fb4d43,
     type: 3}
 --- !u!4 &824535601

@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7937041928732944207}
   - component: {fileID: 5552846505870797346}
   - component: {fileID: 8881421524997724154}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Sphere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -117,7 +117,7 @@ GameObject:
   - component: {fileID: 3140670863728440811}
   - component: {fileID: 6446971057985513487}
   - component: {fileID: 6856581061394271818}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -222,7 +222,7 @@ GameObject:
   - component: {fileID: 5919216109923541942}
   - component: {fileID: 4433814327630380975}
   - component: {fileID: 1558105197081209592}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -326,7 +326,7 @@ GameObject:
   - component: {fileID: 122672306419617832}
   - component: {fileID: 6104660128631021721}
   - component: {fileID: 5984337021245594221}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Coin
   m_TagString: Coin
   m_Icon: {fileID: 0}
@@ -382,5 +382,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.1, y: 0.8, z: 1}
+  m_Size: {x: 0.2, y: 0.8, z: 1}
   m_Center: {x: 0, y: 0, z: 0}

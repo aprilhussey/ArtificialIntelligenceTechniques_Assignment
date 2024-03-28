@@ -34,8 +34,28 @@ public class FinalStateMachine : MonoBehaviour
     // Total number of coins collected by this NPC
     private int coinsCollected = 0;
 
+    // Distance at which a obstacle is visible
     [SerializeField]
-    private float visibilityDistance = 0.3f;
+    private float obstacleVisibilityDistance = 0.5f;
+
+    // Distance at which a coin is visible
+    [SerializeField]
+    private float coinVisibilityDistance = 4.0f;
+
+    private int obstacleMask;
+    private int coinMask;
+
+    // The field of view in which the NPC can see coins
+    [SerializeField]
+    private float fieldOfView = 10f;
+
+    // Used to determine if the coin is left or right, but it will always be left or right to some amount,
+    // this determines an angle from which the FSM decides to move left or right to collect a coin.
+    [SerializeField]
+    private float coinMaxAngleDivergence = 10.0f;
+
+    [SerializeField]
+    private int coinsCollectedGoal = 10;
 
     [SerializeField]
     private Text fsmScoreText;
@@ -46,12 +66,15 @@ public class FinalStateMachine : MonoBehaviour
     {
         rigidBody = GetComponent<Rigidbody>();
         initialScoreText = fsmScoreText.text;
+        coinMask = LayerMask.GetMask("Coin");
+        obstacleMask = LayerMask.GetMask("Obstacle");
+        targetCoin = null;
     }
 
     // Update is called once per frame
     void Update()
     {
-        fsmScoreText.text = initialScoreText + " " + coinsCollected;
+        fsmScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
     }
 
     // Update is called once per Physics frame by default is every 0.02 seconds or rather 50 calls per second.
@@ -70,6 +93,7 @@ public class FinalStateMachine : MonoBehaviour
                 {
                     // Coin spotted change state to CoinIdle
                     this.currentState = State.CoinIdle;
+                    Debug.Log("CurrentState: " + this.currentState);
                 } 
                 else
                 {
@@ -82,6 +106,7 @@ public class FinalStateMachine : MonoBehaviour
                 if (this.CoinVisible())
                 {
                     this.currentState = State.CoinIdle;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 else if (this.ObstacleVisible())
                 {
@@ -93,6 +118,7 @@ public class FinalStateMachine : MonoBehaviour
                 if (this.CoinVisible())
                 {
                     this.currentState = State.CoinIdle;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 else if (this.ObstacleVisible())
                 {
@@ -109,6 +135,7 @@ public class FinalStateMachine : MonoBehaviour
                 if (this.CoinVisible())
                 {
                     this.currentState = State.CoinIdle;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 else if (this.ObstacleVisible())
                 {
@@ -125,6 +152,7 @@ public class FinalStateMachine : MonoBehaviour
                 if (this.CoinVisible())
                 {
                     this.currentState = State.CoinIdle;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
                 else
                 {
@@ -135,17 +163,25 @@ public class FinalStateMachine : MonoBehaviour
             case State.CoinIdle:
             case State.CoinRight:
             case State.CoinLeft:
-                this.ProcessCoinCollectStateChanges();
-                break;
             case State.CoinForward:
-                if (this.CoinCollected())
-                {
-                    this.currentState = State.CoinIdle;
-                } 
-                else if (this.EnoughCoinsCollected())
+                if (this.EnoughCoinsCollected())
                 {
                     this.currentState = State.GoalReached;
+                    Debug.Log("CurrentState: " + this.currentState);
                 }
+                else if (this.CoinCollected())
+                {
+
+                    this.currentState = State.PatrolIdle;
+                    Debug.Log("CurrentState: " + this.currentState);
+                }
+                else
+                {
+                    this.ProcessCoinCollectStateChanges();
+                }
+                break;
+            case State.GoalReached:
+                // For now do nothing just be stationary
                 break;
             default:
                 Debug.Log("ProcessStateMachineChanges: State is invalid.");
@@ -156,12 +192,14 @@ public class FinalStateMachine : MonoBehaviour
     void ProcessStateMachineActions()
     {
         // Set everything to nill to begin with
-        this.rigidBody.velocity = new Vector2(0, 0);
+        this.rigidBody.velocity = Vector3.zero;
+        this.rigidBody.angularVelocity = Vector3.zero;
 
         switch (this.currentState)
         {
             case State.PatrolIdle:
-                // Do nothing be idle!
+                // Reset rotation and do nothing else.
+                transform.rotation = Quaternion.identity;
                 break;
             case State.PatrolForward:
                 // Make the NPC move forward at the defined speed
@@ -174,7 +212,7 @@ public class FinalStateMachine : MonoBehaviour
                 this.transform.Rotate(0, -180, 0);
                 break;
             case State.PatrolLeft90TurnAround:
-                this.transform.Rotate(0, -90, 0);
+                this.transform.Rotate(0, 90, 0);
                 break;
             case State.CoinIdle:
                 // Do nothing be idle!
@@ -187,6 +225,9 @@ public class FinalStateMachine : MonoBehaviour
                 break;
             case State.CoinForward:
                 this.rigidBody.velocity = transform.forward * this.moveSpeed;
+                break;
+            case State.GoalReached:
+                // For now do nothing just be stationary
                 break;
             default:
                 Debug.Log("ProcessStateMachineActions: State is invalid.");
@@ -201,12 +242,15 @@ public class FinalStateMachine : MonoBehaviour
         {
             case CoinDirection.Left:
                 currentState = State.CoinLeft;
+                Debug.Log("CurrentState: " + this.currentState);
                 break;
             case CoinDirection.Right:
                 currentState = State.CoinRight;
+                Debug.Log("CurrentState: " + this.currentState);
                 break;
             case CoinDirection.Ahead:
                 currentState = State.CoinForward;
+                Debug.Log("CurrentState: " + this.currentState);
                 break;
             default:
                 Debug.Log("Coin Direction was not valid");
@@ -217,14 +261,55 @@ public class FinalStateMachine : MonoBehaviour
     bool CoinVisible()
     {
         // Determine if a coin is visible and if so, set it as the target and return true, else return false.
-        // A coin is visible if it is visible without walls in the way for half the coin, use the position of the coin to determine if half is visible from the position of the capsule, both are assumed to be in the middle.
+        // A coin is visible if it is visible without walls in the way for half the coin, use the position of the coin to determine if half is visible from the position of the capsule, this is simplified by using a raycast between the center of both NPC and Coin.
+        Collider[] coinsInViewRadius = Physics.OverlapSphere(transform.position, coinVisibilityDistance, coinMask);
+
+        foreach (Collider coinCollider in coinsInViewRadius)
+        {
+            Vector3 directionToCoin = (coinCollider.transform.position - transform.position).normalized;
+
+            // Check if coin is within field of view
+            if (Vector3.Angle(transform.forward, directionToCoin) < fieldOfView / 2)
+            {
+                float distanceToCoin = Vector3.Distance(transform.position, coinCollider.transform.position);
+
+                // Check if there are obstructions between the NPC and the coin
+                if (!Physics.Raycast(transform.position, directionToCoin, distanceToCoin, obstacleMask))
+                {
+                    if (coinCollider.gameObject.tag != "Coin")
+                    {
+                        // Assume it's one of the objects (cube, sphere, etc) that make up the coin instead of the gameObject we need.
+                        targetCoin = coinCollider.transform.parent.gameObject;
+                    } else
+                    {
+                        targetCoin = coinCollider.gameObject;
+                    }
+                    
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
     CoinDirection GetCoinDirection()
     {
         // Return what direction the coin is in, if it is within where the collider of the capsule will be when it gets to that position return ahead, if it's to the left return left, and if it's to the right return right.
-        return CoinDirection.Ahead;
+        // Check if it's to the left enough
+        Vector3 forwardVector = transform.forward;
+        Vector3 directionOfCoin = (targetCoin.transform.position - transform.position).normalized;
+        float sumOfVectorDirection = -forwardVector.x * directionOfCoin.z + forwardVector.z * directionOfCoin.x;
+        if (sumOfVectorDirection < -coinMaxAngleDivergence)
+        {
+            return CoinDirection.Left;
+        } else if (sumOfVectorDirection > coinMaxAngleDivergence)
+        {
+            return CoinDirection.Right;
+        } 
+        else
+        {
+            return CoinDirection.Ahead;
+        }
     }
 
     bool ObstacleVisible()
@@ -238,27 +323,76 @@ public class FinalStateMachine : MonoBehaviour
         Ray ray = new Ray(transform.position, transform.forward);
         RaycastHit hit;
 
-        bool hitSomething = Physics.Raycast(ray, out hit);
-        //Debug.Log("FSM Raycast Hit: " + hit.collider.tag + "  distance: " + hit.distance);
-
-        return hitSomething && hit.distance < visibilityDistance;
+        bool raycastResult = Physics.Raycast(ray, out hit, obstacleVisibilityDistance);
+        
+        if (hit.collider != null)
+        {
+            GameObject hitObject = hit.collider.gameObject;
+            (bool isCoin, GameObject possibleCoin) = CheckIfCoinOrParentCoin(hitObject);
+            // If raycast hit something and it's not a coin.
+            return raycastResult && !isCoin;
+        }
+        return raycastResult;
     }
 
     bool CoinCollected()
     {
-        // Is a coin needing to be collected?
-        return false;
-    }
-
-    bool CoinAhead()
-    {
-        // Is there a coin ahead?
-        return false;
+        // Has the coin been collected?
+        return targetCoin == null;
     }
 
     bool EnoughCoinsCollected()
     {
         // Has the NPC found enough coins to be successful yet?
-        return false;
+        return coinsCollected >= coinsCollectedGoal;
+    }
+
+    // Draw gizmo in editor
+    void OnDrawGizmos()
+    {
+        // Draw field of view
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, -fieldOfView / 2, 0) * transform.forward * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, fieldOfView / 2, 0) * transform.forward * coinVisibilityDistance);
+
+        // Draw vision distance
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, coinVisibilityDistance);
+
+        // Draw attack distance
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, coinVisibilityDistance);
+    }
+
+    (bool, GameObject) CheckIfCoinOrParentCoin(GameObject objectToCheck)
+    {
+        // Return true if parent is a coin or the object is a coin in pos0
+        // Return coin if true or null/random object if false in pos0, for pos1
+        GameObject possibleCoin = null;
+        if (objectToCheck.layer == coinMask && objectToCheck.gameObject.tag != "Coin")
+        {
+            // Assume it's one of the objects (cube, sphere, etc) that make up the coin instead of the gameObject we need.
+            possibleCoin = objectToCheck.gameObject.transform.parent.gameObject;
+        }
+        else
+        {
+            possibleCoin = objectToCheck.gameObject;
+        }
+        return (possibleCoin != null && possibleCoin.gameObject.tag == "Coin", possibleCoin);
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        (bool isCoin, GameObject possibleCoin) = CheckIfCoinOrParentCoin(collision.gameObject);
+        if (isCoin)
+        {
+            if (possibleCoin.gameObject == targetCoin)
+            {
+                targetCoin = null;
+            }
+            Destroy(possibleCoin.gameObject);
+            coinsCollected += 1;
+            // Reset position to avoid issues with coin rotation
+        }
     }
 }
