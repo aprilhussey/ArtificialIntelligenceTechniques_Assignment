@@ -9,7 +9,7 @@ public class FinalStateMachine : MonoBehaviour
     // PatrolIdle is the initial state, PatrolForward means moving forwards, PatrolLeft90 means moving left 90 degrees, PatrolLeft180 means turning around, PatrolLeft90TurnAround is for turning the last 90 to turn around.
     // CoinIdle is the initial state when a coin is visible, CoinRight means turning right to face a coin, CoinLeft means turning left to face a coin, CoinForward means moving forwards to a coin.
     // GoalReached is when enough coins have been collected.
-    enum State { PatrolIdle, PatrolForward, PatrolLeft90, PatrolLeft180, PatrolLeft90TurnAround, CoinIdle, CoinRight, CoinLeft, CoinForward, GoalReached };
+    enum State { PatrolIdle, PatrolForward, PatrolLeft90, PatrolLeft180, PatrolLeft90TurnAround, CoinIdle, CoinForward, GoalReached };
 
     // Direction a coin is in
     enum CoinDirection { Left, Right, Ahead };
@@ -27,10 +27,6 @@ public class FinalStateMachine : MonoBehaviour
     [SerializeField]
     private float moveSpeed = 1.0f;
 
-    // The amount to rotate on one update when homing on a coin
-    [SerializeField]
-    private float rotationAmount = 0.01f;
-
     // Total number of coins collected by this NPC
     private int coinsCollected = 0;
 
@@ -47,12 +43,7 @@ public class FinalStateMachine : MonoBehaviour
 
     // The field of view in which the NPC can see coins
     [SerializeField]
-    private float fieldOfView = 10f;
-
-    // Used to determine if the coin is left or right, but it will always be left or right to some amount,
-    // this determines an angle from which the FSM decides to move left or right to collect a coin.
-    [SerializeField]
-    private float coinMaxAngleDivergence = 10.0f;
+    private float fieldOfView = 30f;
 
     [SerializeField]
     private int coinsCollectedGoal = 10;
@@ -161,8 +152,6 @@ public class FinalStateMachine : MonoBehaviour
                 }
                 break;
             case State.CoinIdle:
-            case State.CoinRight:
-            case State.CoinLeft:
             case State.CoinForward:
                 if (this.EnoughCoinsCollected())
                 {
@@ -174,10 +163,9 @@ public class FinalStateMachine : MonoBehaviour
 
                     this.currentState = State.PatrolIdle;
                     Debug.Log("CurrentState: " + this.currentState);
-                }
-                else
+                } else
                 {
-                    this.ProcessCoinCollectStateChanges();
+                    currentState = State.CoinForward;
                 }
                 break;
             case State.GoalReached:
@@ -198,8 +186,7 @@ public class FinalStateMachine : MonoBehaviour
         switch (this.currentState)
         {
             case State.PatrolIdle:
-                // Reset rotation and do nothing else.
-                transform.rotation = Quaternion.identity;
+                // Do nothing
                 break;
             case State.PatrolForward:
                 // Make the NPC move forward at the defined speed
@@ -217,12 +204,6 @@ public class FinalStateMachine : MonoBehaviour
             case State.CoinIdle:
                 // Do nothing be idle!
                 break;
-            case State.CoinRight:
-                this.transform.Rotate(0, -rotationAmount, 0);
-                break;
-            case State.CoinLeft:
-                this.transform.Rotate(0, rotationAmount, 0);
-                break;
             case State.CoinForward:
                 this.rigidBody.velocity = transform.forward * this.moveSpeed;
                 break;
@@ -231,29 +212,6 @@ public class FinalStateMachine : MonoBehaviour
                 break;
             default:
                 Debug.Log("ProcessStateMachineActions: State is invalid.");
-                break;
-        }
-    }
-
-    void ProcessCoinCollectStateChanges()
-    {
-        CoinDirection direction = GetCoinDirection();
-        switch (direction)
-        {
-            case CoinDirection.Left:
-                currentState = State.CoinLeft;
-                Debug.Log("CurrentState: " + this.currentState);
-                break;
-            case CoinDirection.Right:
-                currentState = State.CoinRight;
-                Debug.Log("CurrentState: " + this.currentState);
-                break;
-            case CoinDirection.Ahead:
-                currentState = State.CoinForward;
-                Debug.Log("CurrentState: " + this.currentState);
-                break;
-            default:
-                Debug.Log("Coin Direction was not valid");
                 break;
         }
     }
@@ -290,26 +248,6 @@ public class FinalStateMachine : MonoBehaviour
             }
         }
         return false;
-    }
-
-    CoinDirection GetCoinDirection()
-    {
-        // Return what direction the coin is in, if it is within where the collider of the capsule will be when it gets to that position return ahead, if it's to the left return left, and if it's to the right return right.
-        // Check if it's to the left enough
-        Vector3 forwardVector = transform.forward;
-        Vector3 directionOfCoin = (targetCoin.transform.position - transform.position).normalized;
-        float sumOfVectorDirection = -forwardVector.x * directionOfCoin.z + forwardVector.z * directionOfCoin.x;
-        if (sumOfVectorDirection < -coinMaxAngleDivergence)
-        {
-            return CoinDirection.Left;
-        } else if (sumOfVectorDirection > coinMaxAngleDivergence)
-        {
-            return CoinDirection.Right;
-        } 
-        else
-        {
-            return CoinDirection.Ahead;
-        }
     }
 
     bool ObstacleVisible()

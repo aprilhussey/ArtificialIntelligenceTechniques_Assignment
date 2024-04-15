@@ -325,7 +325,7 @@ GameObject:
   m_Component:
   - component: {fileID: 122672306419617832}
   - component: {fileID: 6104660128631021721}
-  - component: {fileID: 5984337021245594221}
+  - component: {fileID: 7653004831359192086}
   m_Layer: 6
   m_Name: Coin
   m_TagString: Coin
@@ -363,8 +363,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c5b0a645aa4fbe4e9ca64cac5c3b634, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!65 &5984337021245594221
-BoxCollider:
+--- !u!135 &7653004831359192086
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -382,5 +382,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.2, y: 0.8, z: 1}
+  m_Radius: 0.4
   m_Center: {x: 0, y: 0, z: 0}
