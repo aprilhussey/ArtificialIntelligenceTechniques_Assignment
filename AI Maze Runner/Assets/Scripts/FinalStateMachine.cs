@@ -6,13 +6,10 @@ using UnityEngine.UI;
 public class FinalStateMachine : MonoBehaviour
 {
     // State definitions
-    // PatrolIdle is the initial state, PatrolForward means moving forwards, PatrolLeft90 means moving left 90 degrees, PatrolLeft180 means turning around, PatrolLeft90TurnAround is for turning the last 90 to turn around.
-    // CoinIdle is the initial state when a coin is visible, CoinRight means turning right to face a coin, CoinLeft means turning left to face a coin, CoinForward means moving forwards to a coin.
+    // PatrolIdle is the initial state, PatrolForward means moving forwards, PatrolLeft90 means moving left 90 degrees, PatrolLeft180 means turning around, PatrolRight90TurnAround  is for turning the last 90 to turn around.
+    // CoinIdle is the initial state when a coin is visible, CoinForward means moving forwards to a coin.
     // GoalReached is when enough coins have been collected.
-    enum State { PatrolIdle, PatrolForward, PatrolLeft90, PatrolLeft180, PatrolLeft90TurnAround, CoinIdle, CoinForward, GoalReached };
-
-    // Direction a coin is in
-    enum CoinDirection { Left, Right, Ahead };
+    enum State { PatrolIdle, PatrolForward, PatrolLeft90, PatrolLeft180, PatrolRight90TurnAround, CoinIdle, CoinForward, GoalReached };
 
     // The current state of the NPC
     private State currentState;
@@ -130,7 +127,7 @@ public class FinalStateMachine : MonoBehaviour
                 }
                 else if (this.ObstacleVisible())
                 {
-                    this.currentState = State.PatrolLeft90TurnAround;
+                    this.currentState = State.PatrolRight90TurnAround;
                     Debug.Log("CurrentState: " + this.currentState);
                 }
                 else
@@ -139,7 +136,7 @@ public class FinalStateMachine : MonoBehaviour
                     Debug.Log("CurrentState: " + this.currentState);
                 }
                 break;
-            case State.PatrolLeft90TurnAround:
+            case State.PatrolRight90TurnAround:
                 if (this.CoinVisible())
                 {
                     this.currentState = State.CoinIdle;
@@ -198,7 +195,7 @@ public class FinalStateMachine : MonoBehaviour
             case State.PatrolLeft180:
                 this.transform.Rotate(0, -180, 0);
                 break;
-            case State.PatrolLeft90TurnAround:
+            case State.PatrolRight90TurnAround:
                 this.transform.Rotate(0, 90, 0);
                 break;
             case State.CoinIdle:
@@ -238,7 +235,8 @@ public class FinalStateMachine : MonoBehaviour
                     {
                         // Assume it's one of the objects (cube, sphere, etc) that make up the coin instead of the gameObject we need.
                         targetCoin = coinCollider.transform.parent.gameObject;
-                    } else
+                    }
+                    else
                     {
                         targetCoin = coinCollider.gameObject;
                     }
