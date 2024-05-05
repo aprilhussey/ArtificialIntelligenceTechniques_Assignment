@@ -44,7 +44,14 @@ public class BehaviourTreeScript : MonoBehaviour
     private int obstacleMask;
     private int coinMask;
 
+    public Vector3 coinDirection;
     public GameObject targetCoin;
+
+    [SerializeField]
+    public float cellDistance = 1.0f;
+    public Vector3 targetCellPos;
+
+    public bool movingToNextCell = false;
 
     // Start is called before the first frame update
     void Start()
@@ -63,13 +70,16 @@ public class BehaviourTreeScript : MonoBehaviour
     void Update()
     {
         btScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
-        topNode.Evaluate();
-    }
 
-    // Update is called once per Physics frame by default is every 0.02 seconds or rather 50 calls per second.
-    void FixedUpdate()
-    { 
-       
+        if (movingToNextCell)
+        {
+            // Handle logic to move to the next cell
+            MoveTowardsNextCell();
+        } else
+        {
+            // Else continue normal evaluation
+            topNode.Evaluate();
+        }
     }
 
     public (bool, GameObject) CheckIfCoinOrParentCoin(GameObject objectToCheck)
@@ -104,44 +114,76 @@ public class BehaviourTreeScript : MonoBehaviour
         }
     }
 
+    public void MoveTowardsNextCell()
+    {
+        float step = moveSpeed * Time.deltaTime;
+        transform.position = Vector3.MoveTowards(transform.position, targetCellPos, step);
+
+        // If at position end this
+        if (transform.position == targetCellPos)
+        {
+            movingToNextCell = false;
+        }
+    }
+
+    public bool ObstacleVisibleInDirection(Vector3 direction)
+    {
+        // If a none coin obstacle is in the direction of the NPC less than half the distance of a maze cell's length
+        // Debug draw the ray
+        Debug.DrawRay(transform.position, direction);
+
+        // Use a raycast to find the next object for the ray
+        Ray ray = new Ray(transform.position, direction);
+        RaycastHit hit;
+
+        bool raycastResult = Physics.Raycast(ray, out hit, obstacleVisibilityDistance);
+
+        if (hit.collider != null)
+        {
+            GameObject hitObject = hit.collider.gameObject;
+            (bool isCoin, GameObject possibleCoin) = CheckIfCoinOrParentCoin(hitObject);
+            // If raycast hit something and it's not a coin.
+            return raycastResult && !isCoin;
+        }
+        return raycastResult;
+    }
+
     private void ConstructBT()
     {
-        // Move forwards
-        ForwardsNode forwardsNode = new ForwardsNode(rigidBody, transform, moveSpeed);
+        // Coin collection sequence
+        CoinVisibleNode coinVisibleNode = new CoinVisibleNode(transform, coinVisibilityDistance, this);
+        FaceCoin faceCoin = new FaceCoin(this, transform);
+        MoveForwardUntilCoinIsCollected moveForwardUntilCoinIsCollected = new MoveForwardUntilCoinIsCollected(this, transform, cellDistance);
+        Sequence coinCollectSequence = new Sequence(new List<Node> { faceCoin, moveForwardUntilCoinIsCollected });
+        Sequence coinCollectionSequence = new Sequence(new List<Node> { coinVisibleNode, coinCollectSequence });
 
-        // Coin aquisition sequence
-        ForwardsAquisitionNode forwardsAquisitionNode = new ForwardsAquisitionNode(transform, coinVisibilityDistance, coinMask, obstacleMask, fieldOfView, this, rigidBody, moveSpeed);
-        CoinVisibleNode coinVisibleNode = new CoinVisibleNode(transform, coinVisibilityDistance, coinMask, obstacleMask, fieldOfView, this);
-        Sequence aquisitionSequence = new Sequence(new List<Node> { coinVisibleNode, forwardsAquisitionNode });
+        // Wander selector
+        NoObstacleRightFaceRight noObstacleRightFaceRight = new NoObstacleRightFaceRight(this, transform);
+        MoveForwardIntoNextCell moveForwardIntoNextCell = new MoveForwardIntoNextCell(this, transform, cellDistance);
+        Sequence noObstacleRightSequence = new Sequence(new List<Node> { noObstacleRightFaceRight, moveForwardIntoNextCell });
+        NoObstacleLeftFaceLeft noObstacleLeftFaceLeft = new NoObstacleLeftFaceLeft(this, transform);
+        Sequence noObstacleLeftSequence = new Sequence(new List<Node> { noObstacleLeftFaceLeft, moveForwardIntoNextCell });
+        TurnAround turnAround = new TurnAround(transform);
+        Selector wanderSelector = new Selector(new List<Node> { noObstacleLeftSequence, moveForwardIntoNextCell, noObstacleRightSequence, turnAround });
 
-        // Handle Obstacle
-        RotateLeft180Node rotateLeft180Node = new RotateLeft180Node(transform);
-        RotateLeft90Node rotateLeft90Node = new RotateLeft90Node(transform);
-        RotateLeft270Node rotateLeft270Node = new RotateLeft270Node(transform);
-        StopNode stopNode = new StopNode(transform, rigidBody);
-        ObstacleFrontNode obstacleFrontNode = new ObstacleFrontNode(transform, this, obstacleVisibilityDistance);
-        Sequence obstacleSequence = new Sequence(new List<Node> { obstacleFrontNode, stopNode, rotateLeft90Node, obstacleFrontNode, rotateLeft180Node, obstacleFrontNode, rotateLeft270Node});
-
-        topNode = new Selector(new List<Node> { aquisitionSequence, obstacleSequence, forwardsNode });
+        topNode = new Selector(new List<Node> { coinCollectionSequence, wanderSelector });
     }
 
     // Draw gizmos in editor
     void OnDrawGizmos()
     {
-        // Draw obstacle ray
-        Gizmos.DrawRay(transform.position, transform.forward);
-
-        // Draw field of view
+        // Draw Coin visibility distance
         Gizmos.color = Color.yellow;
-        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, -fieldOfView / 2, 0) * transform.forward * coinVisibilityDistance);
-        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, fieldOfView / 2, 0) * transform.forward * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.right * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, transform.right * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, transform.forward * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.forward * coinVisibilityDistance);
 
-        // Draw vision distance
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, coinVisibilityDistance);
-
-        // Draw attack distance
+        // Draw obstacle vision distance
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.right * obstacleVisibilityDistance);
+        Gizmos.DrawRay(transform.position, transform.right * obstacleVisibilityDistance);
+        Gizmos.DrawRay(transform.position, transform.forward * obstacleVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.forward * obstacleVisibilityDistance);
     }
 }

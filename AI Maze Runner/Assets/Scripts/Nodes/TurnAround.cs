@@ -2,19 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RotateLeft180Node : Node
+public class TurnAround : Node
 {
     private Transform transform;
 
-    public RotateLeft180Node(Transform transform)
+    public TurnAround(Transform transform)
     {
         this.transform = transform;
     }
 
     public override NodeState Evaluate()
     {
-        Debug.Log("Evaluate RotateLeft180");
-        transform.Rotate(0, -180, 0);
+        Debug.Log("Turning around");
+        // Turn around
+        transform.Rotate(0, 180, 0);
         return NodeState.SUCCESS;
     }
 }

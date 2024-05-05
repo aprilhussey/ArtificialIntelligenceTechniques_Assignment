@@ -6,50 +6,45 @@ public class CoinVisibleNode : Node
 {
     private Transform transform;
     private float coinVisibilityDistance;
-    private int coinMask;
-    private int obstacleMask;
-    private float fieldOfView;
     private BehaviourTreeScript parent;
 
-    public CoinVisibleNode(Transform transform, float coinVisibilityDistance, int coinMask, int obstacleMask, float fieldOfView, BehaviourTreeScript parent)
+    public CoinVisibleNode(Transform transform, float coinVisibilityDistance, BehaviourTreeScript parent)
     {
         this.transform = transform;
         this.coinVisibilityDistance = coinVisibilityDistance;
-        this.coinMask = coinMask;
-        this.obstacleMask = obstacleMask;
-        this.fieldOfView = fieldOfView;
         this.parent = parent;
+    }
+
+    (bool, GameObject) CoinInDirection(Vector3 direction)
+    {
+        Ray ray = new Ray(transform.position, direction);
+        RaycastHit hit;
+        bool raycastResult = Physics.Raycast(ray, out hit, coinVisibilityDistance);
+
+        if (hit.collider != null)
+        {
+            GameObject hitObject = hit.collider.gameObject;
+            (bool isCoin, GameObject possibleCoin) = parent.CheckIfCoinOrParentCoin(hitObject);
+            // If raycast hit something and it's a coin.
+            return (raycastResult && isCoin, possibleCoin);
+        }
+        return (raycastResult, null);
     }
 
     bool CoinVisible()
     {
-        // Determine if a coin is visible and if so, set it as the target and return true, else return false.
-        // A coin is visible if it is visible without walls in the way for half the coin, use the position of the coin to determine if half is visible from the position of the capsule, this is simplified by using a raycast between the center of both NPC and Coin.
-        Collider[] coinsInViewRadius = Physics.OverlapSphere(transform.position, coinVisibilityDistance, coinMask);
-
-        foreach (Collider coinCollider in coinsInViewRadius)
+        // Is there a coin in any direction, use 4 raycasts to check! Max distance raycast stopping for walls.
+        // Check Front, Left, Right, Backwards
+        List<Vector3> directionsToCheck = new List<Vector3>{ transform.forward, -transform.right, transform.right, -transform.forward };
+           
+        foreach (Vector3 direction in directionsToCheck)
         {
-            Vector3 directionToCoin = (coinCollider.transform.position - transform.position).normalized;
-
-            // Check if coin is within field of view
-            if (Vector3.Angle(transform.forward, directionToCoin) < fieldOfView / 2)
+            (bool coinVisible, GameObject possibleCoin) = CoinInDirection(direction);
+            if (coinVisible)
             {
-                float distanceToCoin = Vector3.Distance(transform.position, coinCollider.transform.position);
-
-                // Check if there are obstructions between the NPC and the coin
-                if (!Physics.Raycast(transform.position, directionToCoin, distanceToCoin, obstacleMask))
-                {
-                    if (coinCollider.gameObject.tag != "Coin")
-                    {
-                        // Assume it's one of the objects (cube, sphere, etc) that make up the coin instead of the gameObject we need.
-                        parent.targetCoin = coinCollider.transform.parent.gameObject;
-                    }
-                    else
-                    {
-                        parent.targetCoin = coinCollider.gameObject;
-                    }
-                    return true;
-                }
+                parent.coinDirection = direction;
+                parent.targetCoin = possibleCoin;
+                return true;
             }
         }
         return false;
@@ -60,7 +55,7 @@ public class CoinVisibleNode : Node
         //Debug.Log("Evaluate CoinVisible");
         if (CoinVisible())
         {
-            Debug.Log("COIN VISIBLE");
+            Debug.Log("Coin visible");
             return NodeState.SUCCESS;
         } else
         {
