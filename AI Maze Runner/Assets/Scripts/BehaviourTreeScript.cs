@@ -23,6 +23,13 @@ public class BehaviourTreeScript : MonoBehaviour
     private Text btScoreText;
     private string initialScoreText;
 
+    // Variables for handling timer text
+    [SerializeField]
+    private Text btTimerText;
+    private string initialTimerText;
+    private float initialTime;
+    private float finalTime = 0;
+
     // Total number of coins collected by this NPC
     private int coinsCollected = 0;
 
@@ -59,6 +66,8 @@ public class BehaviourTreeScript : MonoBehaviour
         rigidBody = GetComponent<Rigidbody>();
         coinMask = LayerMask.GetMask("Coin");
         obstacleMask = LayerMask.GetMask("Obstacle");
+        initialTime = Time.time;
+        initialTimerText = btTimerText.text;
         // Construct the behaviour tree
         ConstructBT();
         // Set pos based on set coords
@@ -69,13 +78,20 @@ public class BehaviourTreeScript : MonoBehaviour
     void Update()
     {
         btScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
+        float timeTaken = Time.time - initialTime;
         if (!EnoughCoinsCollected())
         {
+            btTimerText.text = initialTimerText + " " + timeTaken.ToString("F2") + "s";
             topNode.Evaluate();
         }
         else
         {
             // CoinsCollected
+            if (finalTime == 0)
+            {
+                btTimerText.text = initialTimerText + " " + timeTaken.ToString("F2") + "s";
+                finalTime = timeTaken;
+            }
         }
         
     }

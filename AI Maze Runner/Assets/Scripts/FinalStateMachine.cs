@@ -36,6 +36,12 @@ public class FinalStateMachine : MonoBehaviour
     private Text fsmScoreText;
     private string initialScoreText;
 
+    [SerializeField]
+    private Text fsmTimerText;
+    private string initialTimerText;
+    private float initialTime;
+    private float finalTime = 0;
+
     // X and Z coords to set the NPC to initially
     [SerializeField]
     private int xCoord = 10;
@@ -65,18 +71,30 @@ public class FinalStateMachine : MonoBehaviour
         obstacleMask = LayerMask.GetMask("Obstacle");
         // Set pos based on set coords
         transform.position = new Vector3(xCoord, transform.position.y, zCoord);
+        initialTime = Time.time;
+        initialTimerText = fsmTimerText.text;
     }
 
     // Update is called once per frame
     void Update()
     {
-        fsmScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
 
+        fsmScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
+        float timeTaken = Time.time - initialTime;
         if (this.currentState != State.GoalReached)
         {
+            fsmTimerText.text = initialTimerText + " " + timeTaken.ToString("F2") + "s";
             // Ready to perform state checks
             this.ProcessStateMachineChanges();
             this.ProcessStateMachineActions();
+        } else
+        {
+            // Goal was reached.
+            if (finalTime == 0)
+            {
+                fsmTimerText.text = initialTimerText + " " + timeTaken.ToString("F2") + "s";
+                finalTime = timeTaken;
+            }
         }
     }
 
