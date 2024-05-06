@@ -40,6 +40,7 @@ public class BehaviourTreeScript : MonoBehaviour
     private int obstacleMask;
     private int coinMask;
 
+    // Implement global state needed for decision making
     public Vector3 coinDirection;
     public GameObject targetCoin;
 
@@ -68,7 +69,21 @@ public class BehaviourTreeScript : MonoBehaviour
     void Update()
     {
         btScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
-        topNode.Evaluate();
+        if (!EnoughCoinsCollected())
+        {
+            topNode.Evaluate();
+        }
+        else
+        {
+            // CoinsCollected
+        }
+        
+    }
+
+    bool EnoughCoinsCollected()
+    {
+        // Has the NPC found enough coins to be successful yet?
+        return coinsCollected >= coinsCollectedGoal;
     }
 
     public (bool, GameObject) CheckIfCoinOrParentCoin(GameObject objectToCheck)

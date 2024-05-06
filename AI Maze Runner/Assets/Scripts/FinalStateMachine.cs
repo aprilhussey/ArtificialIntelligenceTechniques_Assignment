@@ -6,16 +6,7 @@ using UnityEngine.UI;
 public class FinalStateMachine : MonoBehaviour
 {
     // State definitions
-    // PatrolIdle is the initial state, PatrolForward means moving forwards, PatrolLeft90 means moving left 90 degrees, PatrolLeft180 means turning around, PatrolRight90TurnAround  is for turning the last 90 to turn around.
-    // CoinIdle is the initial state when a coin is visible, CoinForward means moving forwards to a coin.
-    // GoalReached is when enough coins have been collected.
-    enum State { PatrolIdle, PatrolForward, PatrolLeft90, PatrolLeft180, PatrolRight90TurnAround, CoinIdle, CoinForward, GoalReached };
-
-    // The current state of the NPC
-    private State currentState;
-
-    // The coin that is presently targetted for collection
-    private GameObject targetCoin;
+    enum State { WanderForward, WanderLeft, WanderRight, WanderTurnAround, FaceCoin, CoinForward, GoalReached };
 
     // The rigidbody of the NPC object
     private Rigidbody rigidBody;
@@ -33,14 +24,10 @@ public class FinalStateMachine : MonoBehaviour
 
     // Distance at which a coin is visible
     [SerializeField]
-    private float coinVisibilityDistance = 4.0f;
+    private float coinVisibilityDistance = 5.0f;
 
     private int obstacleMask;
     private int coinMask;
-
-    // The field of view in which the NPC can see coins
-    [SerializeField]
-    private float fieldOfView = 30f;
 
     [SerializeField]
     private int coinsCollectedGoal = 10;
@@ -49,6 +36,26 @@ public class FinalStateMachine : MonoBehaviour
     private Text fsmScoreText;
     private string initialScoreText;
 
+    // X and Z coords to set the NPC to initially
+    [SerializeField]
+    private int xCoord = 10;
+    [SerializeField]
+    private int zCoord = 10;
+
+    // Implement global state needed for decision making
+    private State currentState;
+
+    public Vector3 coinDirection;
+    public GameObject targetCoin = null;
+
+    [SerializeField]
+    public float cellDistance = 1.0f;
+    public Vector3 targetCellPos;
+    public Vector3 targetCoinPos;
+
+    public bool movingToCell = false;
+    public bool movingToCoin = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -56,156 +63,158 @@ public class FinalStateMachine : MonoBehaviour
         initialScoreText = fsmScoreText.text;
         coinMask = LayerMask.GetMask("Coin");
         obstacleMask = LayerMask.GetMask("Obstacle");
-        targetCoin = null;
+        // Set pos based on set coords
+        transform.position = new Vector3(xCoord, transform.position.y, zCoord);
     }
 
     // Update is called once per frame
     void Update()
     {
         fsmScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
-    }
 
-    // Update is called once per Physics frame by default is every 0.02 seconds or rather 50 calls per second.
-    void FixedUpdate()
-    {
-        this.ProcessStateMachineChanges();
-        this.ProcessStateMachineActions();
+        if (this.currentState != State.GoalReached)
+        {
+            // Ready to perform state checks
+            this.ProcessStateMachineChanges();
+            this.ProcessStateMachineActions();
+        }
     }
 
     void ProcessStateMachineChanges()
     {
         switch (this.currentState)
         {
-            case State.PatrolIdle:
-                if (this.CoinVisible())
+            case State.WanderForward:
+                if (movingToCell)
                 {
-                    // Coin spotted change state to CoinIdle
-                    this.currentState = State.CoinIdle;
-                    Debug.Log("CurrentState: " + this.currentState);
+                    // Don't allow change of state whilst moving to cell
+                    break;
+                }
+                else if (this.CoinVisible())
+                {
+                    // Coin spotted change state to CoinForward
+                    this.currentState = State.CoinForward;
                 } 
-                else
+                else if (!this.ObstacleVisibleInDirection(-transform.right))
                 {
-                    // Coin not seen start patrol!
-                    this.currentState = State.PatrolForward;
-                    Debug.Log("CurrentState: " + this.currentState);
+                    // No Obstacle left
+                    // Turn Left
+                    this.currentState = State.WanderLeft;
                 }
+                else if (this.ObstacleVisibleInDirection(transform.forward) && this.ObstacleVisibleInDirection(-transform.right) && !this.ObstacleVisibleInDirection(transform.right))
+                {
+                    // Obstacle Forward, Obstacle Left, No Obstacle Right
+                    // Turn Right
+                    this.currentState = State.WanderRight;
+                }
+                else if (this.ObstacleVisibleInDirection(transform.forward) && this.ObstacleVisibleInDirection(-transform.right) && this.ObstacleVisibleInDirection(transform.right))
+                {
+                    // Obstacle Forward, Obstacle Left, Obstacle Right
+                    // Turn Around
+                    this.currentState = State.WanderTurnAround;
+                } 
                 break;
-            case State.PatrolForward:
+            case State.WanderLeft:
+            case State.WanderRight:
+            case State.WanderTurnAround:
                 if (this.CoinVisible())
                 {
-                    this.currentState = State.CoinIdle;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                else if (this.ObstacleVisible())
-                {
-                    this.currentState = State.PatrolLeft90;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                break;
-            case State.PatrolLeft90:
-                if (this.CoinVisible())
-                {
-                    this.currentState = State.CoinIdle;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                else if (this.ObstacleVisible())
-                {
-                    this.currentState = State.PatrolLeft180;
-                    Debug.Log("CurrentState: " + this.currentState);
+                    // Coin spotted change state to CoinForward
+                    this.currentState = State.CoinForward;
                 }
                 else
                 {
-                    this.currentState = State.PatrolForward;
-                    Debug.Log("CurrentState: " + this.currentState);
+                    // Work on the assumption that it will always be correct to push forward as we only get here if no obstacle was infront
+                    this.currentState = State.WanderForward;
                 }
                 break;
-            case State.PatrolLeft180:
-                if (this.CoinVisible())
-                {
-                    this.currentState = State.CoinIdle;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                else if (this.ObstacleVisible())
-                {
-                    this.currentState = State.PatrolRight90TurnAround;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                else
-                {
-                    this.currentState = State.PatrolForward;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                break;
-            case State.PatrolRight90TurnAround:
-                if (this.CoinVisible())
-                {
-                    this.currentState = State.CoinIdle;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                else
-                {
-                    this.currentState = State.PatrolForward;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                break;
-            case State.CoinIdle:
             case State.CoinForward:
-                if (this.EnoughCoinsCollected())
+                if (coinDirection != transform.forward)
                 {
-                    this.currentState = State.GoalReached;
-                    Debug.Log("CurrentState: " + this.currentState);
-                }
-                else if (this.CoinCollected())
+                    // Coin is not infront!
+                    this.currentState = State.FaceCoin;
+                } 
+                else if (CoinCollected() && Vector3.Distance(transform.position, targetCoinPos) <= 0.1)
                 {
-
-                    this.currentState = State.PatrolIdle;
-                    Debug.Log("CurrentState: " + this.currentState);
-                } else
-                {
-                    currentState = State.CoinForward;
+                    transform.position = targetCoinPos;
+                    targetCoinPos = new Vector3(-1, -1, -1);
+                    movingToCoin = false;
+                    if (EnoughCoinsCollected())
+                    {
+                        this.currentState = State.GoalReached;
+                    }
+                    else
+                    {
+                        this.currentState = State.WanderForward;
+                    }
                 }
                 break;
-            case State.GoalReached:
-                // For now do nothing just be stationary
+            case State.FaceCoin:
+                // Will have been handled already so switch 
+                if (coinDirection == transform.forward)
+                {
+                    this.currentState = State.CoinForward;
+                }
                 break;
             default:
                 Debug.Log("ProcessStateMachineChanges: State is invalid.");
                 break;
         }
+        Debug.Log("CurrentState: " + this.currentState);
+    }
+
+    private void MoveForwardOneCell()
+    {
+        if (Vector3.Distance(transform.position, targetCellPos) <= 0.1)
+        {
+            // Now in that cell
+            movingToCell = false;
+            transform.position = targetCellPos;
+            targetCellPos = new Vector3(-1, -1, -1);
+        }
+        if (!this.ObstacleVisibleInDirection(transform.forward))
+        {
+            transform.position = Vector3.MoveTowards(transform.position, targetCellPos, moveSpeed * Time.deltaTime);
+        } 
+        else
+        {
+            // Failsafe assume that the obstacle was not properly accounted for and effectively end this state. Then move to the centre of closest cell.
+            movingToCell = false;
+            transform.position = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
+        }
     }
 
     void ProcessStateMachineActions()
     {
-        // Set everything to nill to begin with
-        this.rigidBody.velocity = Vector3.zero;
-        this.rigidBody.angularVelocity = Vector3.zero;
-
         switch (this.currentState)
         {
-            case State.PatrolIdle:
-                // Do nothing
+            case State.WanderForward:
+                if (!movingToCell)
+                {
+                    // Not presently moving but would like to move to the next cell
+                    movingToCell = true;
+                    targetCellPos = transform.position + transform.forward * cellDistance;
+                }
+                MoveForwardOneCell();
                 break;
-            case State.PatrolForward:
-                // Make the NPC move forward at the defined speed
-                this.rigidBody.velocity = transform.forward * this.moveSpeed;
+            case State.WanderLeft:
+                transform.Rotate(0, -90, 0);
                 break;
-            case State.PatrolLeft90:
-                this.transform.Rotate(0, -90, 0);
+            case State.WanderRight:
+                transform.Rotate(0, 90, 0);
                 break;
-            case State.PatrolLeft180:
-                this.transform.Rotate(0, -180, 0);
-                break;
-            case State.PatrolRight90TurnAround:
-                this.transform.Rotate(0, 90, 0);
-                break;
-            case State.CoinIdle:
-                // Do nothing be idle!
+            case State.WanderTurnAround:
+                transform.Rotate(0, 180, 0);
                 break;
             case State.CoinForward:
-                this.rigidBody.velocity = transform.forward * this.moveSpeed;
+                transform.position = Vector3.MoveTowards(transform.position, targetCoinPos, moveSpeed * Time.deltaTime);
+                break;
+            case State.FaceCoin:
+                transform.rotation = Quaternion.LookRotation(coinDirection);
+                coinDirection = transform.forward;
                 break;
             case State.GoalReached:
-                // For now do nothing just be stationary
+                // DO nothing goal is reached
                 break;
             default:
                 Debug.Log("ProcessStateMachineActions: State is invalid.");
@@ -213,54 +222,18 @@ public class FinalStateMachine : MonoBehaviour
         }
     }
 
-    bool CoinVisible()
+    public bool ObstacleVisibleInDirection(Vector3 direction)
     {
-        // Determine if a coin is visible and if so, set it as the target and return true, else return false.
-        // A coin is visible if it is visible without walls in the way for half the coin, use the position of the coin to determine if half is visible from the position of the capsule, this is simplified by using a raycast between the center of both NPC and Coin.
-        Collider[] coinsInViewRadius = Physics.OverlapSphere(transform.position, coinVisibilityDistance, coinMask);
-
-        foreach (Collider coinCollider in coinsInViewRadius)
-        {
-            Vector3 directionToCoin = (coinCollider.transform.position - transform.position).normalized;
-
-            // Check if coin is within field of view
-            if (Vector3.Angle(transform.forward, directionToCoin) < fieldOfView / 2)
-            {
-                float distanceToCoin = Vector3.Distance(transform.position, coinCollider.transform.position);
-
-                // Check if there are obstructions between the NPC and the coin
-                if (!Physics.Raycast(transform.position, directionToCoin, distanceToCoin, obstacleMask))
-                {
-                    if (coinCollider.gameObject.tag != "Coin")
-                    {
-                        // Assume it's one of the objects (cube, sphere, etc) that make up the coin instead of the gameObject we need.
-                        targetCoin = coinCollider.transform.parent.gameObject;
-                    }
-                    else
-                    {
-                        targetCoin = coinCollider.gameObject;
-                    }
-                    
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    bool ObstacleVisible()
-    {
-        // If a none coin obstacle is directly infront of the NPC less than half the distance of a maze cell's length
-
+        // If a none coin obstacle is in the direction of the NPC less than half the distance of a maze cell's length
         // Debug draw the ray
-        Debug.DrawRay(transform.position, transform.forward);
+        Debug.DrawRay(transform.position, direction);
 
         // Use a raycast to find the next object for the ray
-        Ray ray = new Ray(transform.position, transform.forward);
+        Ray ray = new Ray(transform.position, direction);
         RaycastHit hit;
 
         bool raycastResult = Physics.Raycast(ray, out hit, obstacleVisibilityDistance);
-        
+
         if (hit.collider != null)
         {
             GameObject hitObject = hit.collider.gameObject;
@@ -269,6 +242,44 @@ public class FinalStateMachine : MonoBehaviour
             return raycastResult && !isCoin;
         }
         return raycastResult;
+    }
+
+    (bool, GameObject) CoinInDirection(Vector3 direction)
+    {
+        // Return a tuple containing a bool for whether a coin was seen, and a GameObject containing that coin otherwise return null.
+        Ray ray = new Ray(transform.position, direction);
+        RaycastHit hit;
+        bool raycastResult = Physics.Raycast(ray, out hit, coinVisibilityDistance);
+
+        if (hit.collider != null)
+        {
+            GameObject hitObject = hit.collider.gameObject;
+            (bool isCoin, GameObject possibleCoin) = CheckIfCoinOrParentCoin(hitObject);
+            // If raycast hit something and it's a coin.
+            return (raycastResult && isCoin, possibleCoin);
+        }
+        return (raycastResult, null);
+    }
+
+    bool CoinVisible()
+    {
+        // Is there a coin in any direction, use 4 raycasts to check! Max distance raycast stopping for walls.
+        // Check Front, Left, Right, Backwards
+        List<Vector3> directionsToCheck = new List<Vector3> { transform.forward, -transform.right, transform.right, -transform.forward };
+
+        foreach (Vector3 direction in directionsToCheck)
+        {
+            (bool coinVisible, GameObject possibleCoin) = CoinInDirection(direction);
+            if (coinVisible)
+            {
+                coinDirection = direction;
+                targetCoin = possibleCoin;
+                movingToCoin = true;
+                targetCoinPos = possibleCoin.transform.position;
+                return true;
+            }
+        }
+        return false;
     }
 
     bool CoinCollected()
@@ -283,21 +294,25 @@ public class FinalStateMachine : MonoBehaviour
         return coinsCollected >= coinsCollectedGoal;
     }
 
-    // Draw gizmo in editor
+    // Draw gizmos in editor
     void OnDrawGizmos()
     {
-        // Draw field of view
+        // Draw Coin visibility distance
         Gizmos.color = Color.yellow;
-        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, -fieldOfView / 2, 0) * transform.forward * coinVisibilityDistance);
-        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, fieldOfView / 2, 0) * transform.forward * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.right * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, transform.right * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, transform.forward * coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.forward * coinVisibilityDistance);
 
-        // Draw vision distance
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, coinVisibilityDistance);
-
-        // Draw attack distance
+        // Draw obstacle vision distance
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, coinVisibilityDistance);
+        Gizmos.DrawRay(transform.position, -transform.right * obstacleVisibilityDistance);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawRay(transform.position, transform.right * obstacleVisibilityDistance);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(transform.position, transform.forward * obstacleVisibilityDistance);
+        Gizmos.color = Color.green;
+        Gizmos.DrawRay(transform.position, -transform.forward * obstacleVisibilityDistance);
     }
 
     (bool, GameObject) CheckIfCoinOrParentCoin(GameObject objectToCheck)
