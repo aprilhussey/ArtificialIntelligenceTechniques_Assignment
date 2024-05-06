@@ -46,8 +46,10 @@ public class BehaviourTreeScript : MonoBehaviour
     [SerializeField]
     public float cellDistance = 1.0f;
     public Vector3 targetCellPos;
+    public Vector3 targetCoinPos;
 
-    public bool movingToTarget = false;
+    public bool movingToCell = false;
+    public bool movingToCoin = false;
 
     // Start is called before the first frame update
     void Start()
@@ -97,7 +99,6 @@ public class BehaviourTreeScript : MonoBehaviour
             }
             Destroy(possibleCoin.gameObject);
             coinsCollected += 1;
-
         }
     }
 
@@ -138,7 +139,7 @@ public class BehaviourTreeScript : MonoBehaviour
         Sequence noObstacleRightSequence = new Sequence(new List<Node> { noObstacleRightFaceRight, moveForwardIntoNextCell });
         NoObstacleLeftFaceLeft noObstacleLeftFaceLeft = new NoObstacleLeftFaceLeft(this, transform);
         Sequence noObstacleLeftSequence = new Sequence(new List<Node> { noObstacleLeftFaceLeft, moveForwardIntoNextCell });
-        TurnAround turnAround = new TurnAround(transform);
+        TurnAround turnAround = new TurnAround(this, transform);
         Selector wanderSelector = new Selector(new List<Node> { noObstacleLeftSequence, moveForwardIntoNextCell, noObstacleRightSequence, turnAround });
 
         topNode = new Selector(new List<Node> { coinCollectionSequence, wanderSelector });
@@ -157,8 +158,11 @@ public class BehaviourTreeScript : MonoBehaviour
         // Draw obstacle vision distance
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, -transform.right * obstacleVisibilityDistance);
+        Gizmos.color = Color.magenta;
         Gizmos.DrawRay(transform.position, transform.right * obstacleVisibilityDistance);
+        Gizmos.color = Color.blue;
         Gizmos.DrawRay(transform.position, transform.forward * obstacleVisibilityDistance);
+        Gizmos.color = Color.green;
         Gizmos.DrawRay(transform.position, -transform.forward * obstacleVisibilityDistance);
     }
 }

@@ -22,30 +22,34 @@ public class MoveForwardUntilCoinIsCollected : Node
 
     public override NodeState Evaluate()
     {
-        if (CoinCollected())
+        if (CoinCollected() && Vector3.Distance(transform.position, parent.targetCoinPos) <= 0.1)
         {
             Debug.Log("Coin Collected!");
-            parent.movingToTarget = false;
-            parent.targetCellPos = new Vector3(-1, -1, -1);
-            // Round out x, and z for current position handles issues with above logic and the inacuracies of floating point logic
-            transform.position = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
+            parent.movingToCoin = false;
+            // Round out x, and z for current position handles issues with above logic and the inacuracies of floating point logic (Cheaper to not calculate the coinPos instead of ref this variable)
+            transform.position = parent.targetCoinPos;
+            parent.targetCoinPos = new Vector3(-1, -1, -1);
             return NodeState.SUCCESS;
         }
-        else if (parent.movingToTarget)
+        else if (parent.movingToCoin)
         {
-            Debug.Log("Moving to Target");
+            Debug.Log("Moving to tagret coin");
             // Performing task of going to next cell
             float step = parent.moveSpeed * Time.deltaTime;
-            transform.position = Vector3.MoveTowards(transform.position, parent.targetCellPos, step);
+            transform.position = Vector3.MoveTowards(transform.position, parent.targetCoinPos, step);
+            return NodeState.RUNNING;
+        }
+        else if (!parent.movingToCell)
+        {
+            Debug.Log("Moving to coin");
+            // New task to go to next cell
+            parent.movingToCoin = true;
+            parent.targetCoinPos = parent.targetCoin.transform.position;
             return NodeState.RUNNING;
         }
         else
         {
-            Debug.Log("Moving to coin");
-            // New task to go to next cell
-            parent.movingToTarget = true;
-            parent.targetCellPos = parent.targetCoin.transform.position;
-            return NodeState.RUNNING;
+            return NodeState.FAILURE;
         }
     }
 }

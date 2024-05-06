@@ -5,17 +5,26 @@ using UnityEngine;
 public class TurnAround : Node
 {
     private Transform transform;
+    private BehaviourTreeScript parent;
 
-    public TurnAround(Transform transform)
+    public TurnAround(BehaviourTreeScript parent, Transform transform)
     {
         this.transform = transform;
+        this.parent = parent;
     }
 
     public override NodeState Evaluate()
     {
-        Debug.Log("Turning around");
-        // Turn around
-        transform.Rotate(0, 180, 0);
-        return NodeState.SUCCESS;
+        if (!parent.movingToCell && !parent.movingToCoin)
+        {
+            Debug.Log("Turning around");
+            // Turn around
+            transform.Rotate(0, 180, 0);
+            return NodeState.SUCCESS;
+        } else
+        {
+            return NodeState.FAILURE;
+        }
+        
     }
 }

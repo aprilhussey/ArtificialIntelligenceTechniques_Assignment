@@ -20,7 +20,7 @@ public class NoObstacleLeftFaceLeft : Node
 
     public override NodeState Evaluate()
     {
-        if (!ObstacleLeft())
+        if (!ObstacleLeft() && !parent.movingToCell && !parent.movingToCoin)
         {
             Debug.Log("Turning Left");
             // Rotate left

@@ -54,9 +54,14 @@ public class CoinVisibleNode : Node
     public override NodeState Evaluate()
     {
         //Debug.Log("Evaluate CoinVisible");
-        if (CoinVisible())
+        if (parent.movingToCoin || parent.targetCoin != null)
         {
-            Debug.Log("Coin visible");
+            // Coin targetted continue
+            return NodeState.SUCCESS;
+        }
+        else if (CoinVisible() && !parent.movingToCoin)
+        {
+            Debug.Log("Coin spotted");
             return NodeState.SUCCESS;
         } else
         {
