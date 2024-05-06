@@ -17,6 +17,7 @@ public class CoinVisibleNode : Node
 
     (bool, GameObject) CoinInDirection(Vector3 direction)
     {
+        // Return a tuple containing a bool for whether a coin was seen, and a GameObject containing that coin otherwise return null.
         Ray ray = new Ray(transform.position, direction);
         RaycastHit hit;
         bool raycastResult = Physics.Raycast(ray, out hit, coinVisibilityDistance);

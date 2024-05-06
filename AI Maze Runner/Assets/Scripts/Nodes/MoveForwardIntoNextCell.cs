@@ -22,19 +22,31 @@ public class MoveForwardIntoNextCell : Node
 
     public override NodeState Evaluate()
     {
-        Debug.Log("Moving forward into next cell");
-        if (transform.position == parent.targetCellPos)
+        if (Vector3.Distance(transform.position, parent.targetCellPos) <= 0.01)
         {
+            parent.movingToTarget = false;
+            parent.targetCellPos = new Vector3(-1, -1, -1);
+            // Round out x, and z for current position handles issues with above logic and the inacuracies of floating point logic
+            transform.position = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
             return NodeState.SUCCESS;
         }
         else if (ObstacleFront())
         {
             return NodeState.FAILURE;
+        } 
+        else if (parent.movingToTarget)
+        {
+            // Performing task of going to next cell
+            float step = parent.moveSpeed * Time.deltaTime;
+            transform.position = Vector3.MoveTowards(transform.position, parent.targetCellPos, step);
+            return NodeState.RUNNING;
         }
         else
         {
-            parent.movingToNextCell = true;
-            parent.targetCellPos = transform.forward * cellDistance;
+            Debug.Log("Moving forward 1 cell");
+            // New task to go to next cell
+            parent.movingToTarget = true;
+            parent.targetCellPos = transform.position + transform.forward * cellDistance;
             return NodeState.RUNNING;
         }
     }

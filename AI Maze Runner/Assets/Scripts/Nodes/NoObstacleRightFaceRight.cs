@@ -21,8 +21,9 @@ public class NoObstacleRightFaceRight : Node
     public override NodeState Evaluate()
     {
         Debug.Log("Checking right obstacle");
-        if (ObstacleRight())
+        if (!ObstacleRight())
         {
+            Debug.Log("Turning Right");
             // Rotate Right
             transform.Rotate(0, 90, 0);
             return NodeState.SUCCESS;

@@ -11,7 +11,7 @@ public class BehaviourTreeScript : MonoBehaviour
     private Rigidbody rigidBody;
     // The speed to be moved when moving forwards
     [SerializeField]
-    private float moveSpeed = 1.0f;
+    public float moveSpeed = 0.5f;
     // X and Z coords to set the NPC to initially
     [SerializeField]
     private int xCoord = 10;
@@ -37,10 +37,6 @@ public class BehaviourTreeScript : MonoBehaviour
     [SerializeField]
     private float coinVisibilityDistance = 2.0f;
 
-    // The field of view in which the NPC can see coins
-    [SerializeField]
-    private float fieldOfView = 30f;
-
     private int obstacleMask;
     private int coinMask;
 
@@ -51,7 +47,7 @@ public class BehaviourTreeScript : MonoBehaviour
     public float cellDistance = 1.0f;
     public Vector3 targetCellPos;
 
-    public bool movingToNextCell = false;
+    public bool movingToTarget = false;
 
     // Start is called before the first frame update
     void Start()
@@ -70,16 +66,7 @@ public class BehaviourTreeScript : MonoBehaviour
     void Update()
     {
         btScoreText.text = initialScoreText + " " + coinsCollected + "/" + coinsCollectedGoal;
-
-        if (movingToNextCell)
-        {
-            // Handle logic to move to the next cell
-            MoveTowardsNextCell();
-        } else
-        {
-            // Else continue normal evaluation
-            topNode.Evaluate();
-        }
+        topNode.Evaluate();
     }
 
     public (bool, GameObject) CheckIfCoinOrParentCoin(GameObject objectToCheck)
@@ -111,18 +98,6 @@ public class BehaviourTreeScript : MonoBehaviour
             Destroy(possibleCoin.gameObject);
             coinsCollected += 1;
 
-        }
-    }
-
-    public void MoveTowardsNextCell()
-    {
-        float step = moveSpeed * Time.deltaTime;
-        transform.position = Vector3.MoveTowards(transform.position, targetCellPos, step);
-
-        // If at position end this
-        if (transform.position == targetCellPos)
-        {
-            movingToNextCell = false;
         }
     }
 

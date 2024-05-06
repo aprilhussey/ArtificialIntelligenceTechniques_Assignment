@@ -20,9 +20,9 @@ public class NoObstacleLeftFaceLeft : Node
 
     public override NodeState Evaluate()
     {
-        Debug.Log("Checking left obstacle");
-        if (ObstacleLeft())
+        if (!ObstacleLeft())
         {
+            Debug.Log("Turning Left");
             // Rotate left
             transform.Rotate(0, -90, 0);
             return NodeState.SUCCESS;

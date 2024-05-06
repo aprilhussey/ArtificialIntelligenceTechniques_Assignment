@@ -22,14 +22,29 @@ public class MoveForwardUntilCoinIsCollected : Node
 
     public override NodeState Evaluate()
     {
-        Debug.Log("Collecting coin");
         if (CoinCollected())
         {
+            Debug.Log("Coin Collected!");
+            parent.movingToTarget = false;
+            parent.targetCellPos = new Vector3(-1, -1, -1);
+            // Round out x, and z for current position handles issues with above logic and the inacuracies of floating point logic
+            transform.position = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
             return NodeState.SUCCESS;
-        } else
+        }
+        else if (parent.movingToTarget)
         {
-            parent.movingToNextCell = true;
-            parent.targetCellPos = transform.forward * cellDistance;
+            Debug.Log("Moving to Target");
+            // Performing task of going to next cell
+            float step = parent.moveSpeed * Time.deltaTime;
+            transform.position = Vector3.MoveTowards(transform.position, parent.targetCellPos, step);
+            return NodeState.RUNNING;
+        }
+        else
+        {
+            Debug.Log("Moving to coin");
+            // New task to go to next cell
+            parent.movingToTarget = true;
+            parent.targetCellPos = parent.targetCoin.transform.position;
             return NodeState.RUNNING;
         }
     }
