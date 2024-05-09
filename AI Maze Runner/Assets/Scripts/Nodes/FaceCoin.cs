@@ -15,7 +15,6 @@ public class FaceCoin : Node
 
     public override NodeState Evaluate()
     {
-        Debug.Log("Face Coin");
         transform.rotation = Quaternion.LookRotation(parent.coinDirection);
         return NodeState.SUCCESS;
     }

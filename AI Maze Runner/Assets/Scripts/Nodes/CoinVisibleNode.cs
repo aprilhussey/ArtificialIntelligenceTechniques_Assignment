@@ -61,7 +61,6 @@ public class CoinVisibleNode : Node
         }
         else if (CoinVisible() && !parent.movingToCoin)
         {
-            Debug.Log("Coin spotted");
             return NodeState.SUCCESS;
         } else
         {

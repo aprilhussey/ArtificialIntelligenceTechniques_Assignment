@@ -43,7 +43,6 @@ public class MoveForwardIntoNextCell : Node
         }
         else if (!parent.movingToCoin)
         {
-            Debug.Log("Moving forward 1 cell");
             // New task to go to next cell
             parent.movingToCell = true;
             parent.targetCellPos = transform.position + transform.forward * cellDistance;

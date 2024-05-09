@@ -24,7 +24,6 @@ public class MoveForwardUntilCoinIsCollected : Node
     {
         if (CoinCollected() && Vector3.Distance(transform.position, parent.targetCoinPos) <= 0.1)
         {
-            Debug.Log("Coin Collected!");
             parent.movingToCoin = false;
             // Round out x, and z for current position handles issues with above logic and the inacuracies of floating point logic (Cheaper to not calculate the coinPos instead of ref this variable)
             transform.position = parent.targetCoinPos;
@@ -33,7 +32,6 @@ public class MoveForwardUntilCoinIsCollected : Node
         }
         else if (parent.movingToCoin)
         {
-            Debug.Log("Moving to tagret coin");
             // Performing task of going to next cell
             float step = parent.moveSpeed * Time.deltaTime;
             transform.position = Vector3.MoveTowards(transform.position, parent.targetCoinPos, step);
@@ -41,7 +39,6 @@ public class MoveForwardUntilCoinIsCollected : Node
         }
         else if (!parent.movingToCell)
         {
-            Debug.Log("Moving to coin");
             // New task to go to next cell
             parent.movingToCoin = true;
             parent.targetCoinPos = parent.targetCoin.transform.position;

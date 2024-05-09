@@ -22,7 +22,6 @@ public class NoObstacleLeftFaceLeft : Node
     {
         if (!ObstacleLeft() && !parent.movingToCell && !parent.movingToCoin)
         {
-            Debug.Log("Turning Left");
             // Rotate left
             transform.Rotate(0, -90, 0);
             return NodeState.SUCCESS;

@@ -17,7 +17,6 @@ public class TurnAround : Node
     {
         if (!parent.movingToCell && !parent.movingToCoin)
         {
-            Debug.Log("Turning around");
             // Turn around
             transform.Rotate(0, 180, 0);
             return NodeState.SUCCESS;

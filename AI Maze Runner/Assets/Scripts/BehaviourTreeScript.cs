@@ -12,11 +12,6 @@ public class BehaviourTreeScript : MonoBehaviour
     // The speed to be moved when moving forwards
     [SerializeField]
     public float moveSpeed = 0.5f;
-    // X and Z coords to set the NPC to initially
-    [SerializeField]
-    private int xCoord = 10;
-    [SerializeField]
-    private int zCoord = 10;
 
     // Variables for handling the score
     [SerializeField]
@@ -28,7 +23,13 @@ public class BehaviourTreeScript : MonoBehaviour
     private Text btTimerText;
     private string initialTimerText;
     private float initialTime;
-    private float finalTime = 0;
+    public float finalTime = 0;
+
+    // Variables for handling decision text
+    [SerializeField]
+    private Text btDecisionText;
+    private string initialDecisionText;
+    public int decisionsMade = 0;
 
     // Total number of coins collected by this NPC
     private int coinsCollected = 0;
@@ -68,10 +69,9 @@ public class BehaviourTreeScript : MonoBehaviour
         obstacleMask = LayerMask.GetMask("Obstacle");
         initialTime = Time.time;
         initialTimerText = btTimerText.text;
+        initialDecisionText = btDecisionText.text;
         // Construct the behaviour tree
         ConstructBT();
-        // Set pos based on set coords
-        transform.position = new Vector3(xCoord, transform.position.y, zCoord);
     }
 
     // Update is called once per frame
@@ -81,8 +81,15 @@ public class BehaviourTreeScript : MonoBehaviour
         float timeTaken = Time.time - initialTime;
         if (!EnoughCoinsCollected())
         {
+            NodeState evaluateReturn = topNode.Evaluate();
+            // Increment decision made each time we evaluate the top node, if not Running.
+            if (evaluateReturn != NodeState.RUNNING)
+            {
+                decisionsMade++;
+            }
+            // Write new decision and timer text
             btTimerText.text = initialTimerText + " " + timeTaken.ToString("F2") + "s";
-            topNode.Evaluate();
+            btDecisionText.text = initialDecisionText + " " + decisionsMade;
         }
         else
         {
@@ -96,7 +103,7 @@ public class BehaviourTreeScript : MonoBehaviour
         
     }
 
-    bool EnoughCoinsCollected()
+    public bool EnoughCoinsCollected()
     {
         // Has the NPC found enough coins to be successful yet?
         return coinsCollected >= coinsCollectedGoal;
